@@ -2,12 +2,18 @@
 # This is a hello world HOT template just defining a single compute
 # server.
 #
-heat_template_version: 2013-05-23
+heat_template_version: 2014-10-16
 
-description: >
+description:
   Hello world HOT template that just defines a single server.
   Contains just base features to verify base HOT support.
 parameters:
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: xenial-server-cloudimg-amd64-disk1
+    constraints:
+      - custom_constraint: glance.image
   key_name:
     type: string
     description: Name of an existing key pair to use for the server
@@ -18,12 +24,6 @@ parameters:
     default: 2048-10-1-1
     constraints:
       - custom_constraint: nova.flavor
-  image:
-    type: string
-    description: Image ID or image name to use for the server
-    default: xenial-server-cloudimg-amd64-disk1
-    constraints:
-      - custom_constraint: glance.image
   private_net:
     type: string
     description: The network to which the server should be connected
@@ -41,19 +41,14 @@ resources:
       networks:
         - network: { get_param: private_net}
       user_data_format: RAW
-      user_data:
-        str_replace:
-          template: |
+      user_data: |
             #!/bin/bash
             sudo apt-get update
-            sudo apt install python --assume-yes
+            sudo apt-get install python-minimal -y
             wget https://raw.githubusercontent.com/houssemmh/INF8480-TP3/master/server.py
-            python server.py &
-          params:
-            param1: ''
-      
+            python server.py 
 
 outputs:
   server_networks:
     description: The networks of the deployed server
-value: { get_attr: [server, networks] }
+    value: { get_attr: [server, networks] }
