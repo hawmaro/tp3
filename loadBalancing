@@ -39,6 +39,7 @@ resources:
   web_nodes:
     type: OS::Heat::ResourceGroup
     properties:
+      count: 3
       resource_def:
         type: OS::Nova::Server
         properties:      
@@ -47,7 +48,7 @@ resources:
           private_net: [{network: {get_param: private_net} }]
           key: {get_param: key_name}
           pool_id: {get_ressource: pool}
-      count: 3 
+       
       
   pool:
       type: OS::Neutron::Pool
