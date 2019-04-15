@@ -1,0 +1,83 @@
+heat_template_version: 2014-10-16
+
+description: Serveur a 3 machines
+
+parameters:
+
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: xenial-server-cloudimg-amd64-disk1
+    constraints:
+      - custom_constraint: glance.image
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    default: cle3
+  flavor:
+    type: string
+    description: Flavor for the server to be created
+    default: 2048-10-1-1
+    constraints:
+      - custom_constraint: nova.flavor
+  private_net:
+    type: string
+    description: The internal network
+    default: switch1-nat
+    constraints:
+      - {custom_constraint: neutron.network}
+  external_net:
+    type: string
+    description: External network
+    default: 1fa7fade-2722-4677-9e2b-da22d385202b
+  sub_net:
+    type: string
+    description: Sous-reseau dans lequel le load balancer sera situe
+    default: 4ba321db-9247-454b-9274-faad8ec76461
+
+resources:
+  web_nodes:
+    type: OS::Heat::ResourceGroup
+    properties:
+      resource_def:
+        type: OS::Nova::Server
+        properties:      
+          flavor: {get_param: flavor}
+          image: {get_param: image}
+          private_net: [{network: {get_param: private_net} }]
+          key: {get_param: key_name}
+          pool_id: {get_ressource: pool}
+      count: 3 
+      
+  pool:
+      type: OS::Neutron::Pool
+      #A completer
+      properties:
+       protocol: HTTP
+       monitors: [{get_resource: monitor}]
+       subnet_id: {get_param: sub_net}
+       lb_method: ROUND_ROBIN
+       vip:
+        protocol_port: 8000
+        
+      
+  lbalancer:
+      type: OS::Neutron::LoadBalancer
+      #A completer
+      properties:
+       protocol_port: 8000
+       pool_id: {get_resource: pool}
+
+  monitor:
+      type: OS::Neutron::HealthMonitor
+      #A completer
+      properties:
+       type: TCP
+       delay: 15
+       max_retries: 2
+       timeout: 5
+
+outputs:
+  pool_ip_address:
+    value: {get_attr: [pool, vip, address]}
+    description: The IP address of the load balancing pool
