@@ -1,54 +1,44 @@
 heat_template_version: 2014-10-16
 
-description: Serveur a 3 machines
+description: A template to deploy a load balanced web server
 
 parameters:
-
   image:
     type: string
-    description: Image ID or image name to use for the server
-    default: xenial-server-cloudimg-amd64-disk1
-    constraints:
-      - custom_constraint: glance.image
-  key_name:
-    type: string
-    description: Name of an existing key pair to use for the server
-    default: cle3
+    description: Image utilisee pour les serveurs
+    default: INF4410-Ubuntu-trusty-mini
+
   flavor:
     type: string
-    description: Flavor for the server to be created
-    default: 2048-10-1-1
-    constraints:
-      - custom_constraint: nova.flavor
-  private_net:
-    type: string
-    description: The internal network
-    default: switch1-nat
-    constraints:
-      - {custom_constraint: neutron.network}
-  external_net:
-    type: string
-    description: External network
-    default: 1fa7fade-2722-4677-9e2b-da22d385202b
-  sub_net:
+    description: Flavor utilisee par les serveurs
+    default: INF4410-mini
+
+  subnet_id:
     type: string
     description: Sous-reseau dans lequel le load balancer sera situe
-    default: 4ba321db-9247-454b-9274-faad8ec76461
+    default: 0acf3ed5-357f-41a0-8848-b8979f69c976
+    
+  network_id:
+   type: string
+   description: reseau
+   default: INF4410-19-net
 
 resources:
   web_nodes:
-    type: OS::Heat::ResourceGroup
-    properties:
-      count: 3
-      resource_def:
+      type: OS::Heat::ResourceGroup
+      properties:
+       count: 2
+       resource_def:
         type: OS::Nova::Server
         properties:      
-          flavor: {get_param: flavor}
-          image: {get_param: image}
-          private_net: [{network: {get_param: private_net} }]
-          key: {get_param: key_name}
-          pool_id: {get_ressource: pool}
-       
+         flavor: {get_param: flavor}
+         image: {get_param: image}
+         networks: [{network: {get_param: network_id} }]
+         user_data_format: RAW
+         user_data: |
+            #!/bin/bash
+            wget https://raw.githubusercontent.com/houssemmh/INF8440-TP3/master/server.py
+            python server.py &      
       
   pool:
       type: OS::Neutron::Pool
@@ -56,7 +46,7 @@ resources:
       properties:
        protocol: HTTP
        monitors: [{get_resource: monitor}]
-       subnet_id: {get_param: sub_net}
+       subnet_id: {get_param: subnet_id}
        lb_method: ROUND_ROBIN
        vip:
         protocol_port: 8000
@@ -74,9 +64,9 @@ resources:
       #A completer
       properties:
        type: TCP
-       delay: 15
+       delay: 12
        max_retries: 2
-       timeout: 5
+       timeout: 6
 
 outputs:
   pool_ip_address:
